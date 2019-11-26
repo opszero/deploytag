@@ -40,6 +40,7 @@ to quickly create a Cobra application.`,
 	rootCmd.PersistentFlags().StringVar(&config.GCPPlainTextSecretsFile, "cloud-gcp-kms-output", "", "the path of the output plain text secrets file")
 	rootCmd.PersistentFlags().StringVar(&config.GCPKeyRingLocation, "cloud-gcp-kms-location", "", "the location of the gcp keyring (must be provided with the keyring)")
 	rootCmd.PersistentFlags().StringVar(&config.GCPKMSKey, "cloud-gcp-kms-key", os.Getenv(GCPDecryptionKeyVariable),"te key used to decrypt the secrets file")
+	rootCmd.PersistentFlags().StringVar(&config.GCPKeyRingName, "cloud-gcp-kms-keyring-name", "","the keyring to use to decrypt the secrets")
 
 	rootCmd.PersistentFlags().StringVar(&config.Git.Branch, "branch", config.Git.GetDefaultBranch(), "The Git Branch to Tag the Docker Image")
 	rootCmd.PersistentFlags().StringVar(&config.Git.Sha, "sha", config.Git.GetDefaultSha1(), "The Git Sha to Tag the Docker Image")

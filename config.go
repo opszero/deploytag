@@ -53,6 +53,7 @@ type Config struct {
 	GCPPlainTextSecretsFile string
 	GCPKMSKey               string
 	GCPKeyRingLocation      string
+	GCPKeyRingName			string
 
 	AppAwsSecretIds []string
 	AppEnvConfig    string
