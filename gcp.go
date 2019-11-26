@@ -11,39 +11,38 @@ type GCPKmsSecret struct {
 
 }
 
-func (c *Config) loadGCPSecrets() error {
+func (c *Config) GCPKmsSecret() error {
 	args := []string{
 		"gcloud",
 		"kms",
 		"decrypt",
 		"--ciphertext-file",
-		c.GCPKmsSecret.GCPEncryptedSecretsFile,
+		c.GCPKms.GCPEncryptedSecretsFile,
 		"--plaintext-file",
-		c.GCPKmsSecret.GCPPlainTextSecretsFile,
+		c.GCPKms.GCPPlainTextSecretsFile,
 	}
-
-	if c.GCPKmsSecret.GCPEncryptedSecretsFile == "" || c.GCPKmsSecret.GCPPlainTextSecretsFile == "" {
+	if c.GCPKms.GCPEncryptedSecretsFile == "" || c.GCPKms.GCPPlainTextSecretsFile == "" {
 		return errors.New("the encrypted secrets file and the plain text file to write out with are required")
 	}
 
-	if c.GCPKmsSecret.GCPKMSKey != "" {
+	if c.GCPKms.GCPKMSKey != "" {
 		args = append(args, []string{
 			"--key",
-			c.GCPKmsSecret.GCPKMSKey}...
+			c.GCPKms.GCPKMSKey}...
 		)
 	}
 
-	if c.GCPKmsSecret.GCPKeyRingName != "" {
+	if c.GCPKms.GCPKeyRingName != "" {
 		args = append(args, []string{
 			"--keyring",
-			c.GCPKmsSecret.GCPKeyRingName}...
+			c.GCPKms.GCPKeyRingName}...
 		)
 	}
 
-	if c.GCPKmsSecret.GCPKeyRingLocation != "" {
+	if c.GCPKms.GCPKeyRingLocation != "" {
 		args = append(args, []string{
 			"--location",
-			c.GCPKmsSecret.GCPKeyRingLocation}...
+			c.GCPKms.GCPKeyRingLocation}...
 		)
 	}
 

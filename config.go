@@ -52,8 +52,8 @@ type Config struct {
 	AppAwsSecretIds []string
 	AppEnvConfig    string
 
-	Git          Git
-	GCPKmsSecret GCPKmsSecret
+	Git    Git
+	GCPKms GCPKmsSecret
 
 	Docker struct {
 		Tag string
@@ -184,19 +184,17 @@ func (c *Config) Init() {
 		} else {
 			log.Println("No Google Service Account Key given")
 		}
-		err := runCmd("gcloud", "auth", "activate-service-account", "--key-file=/tmp/gcloud-service-key.json")
-		if err != nil {
+		if err := runCmd("gcloud", "auth", "activate-service-account", "--key-file=/tmp/gcloud-service-key.json");err != nil {
 			log.Fatalln("failed to authenticate gcp from service account")
 			return
 		}
-		err = c.loadGCPSecrets()
-		if err != nil {
+		if err := c.GCPKmsSecret(); err != nil {
 			log.Fatalln("failed to load secrets for GCP deployment")
 			return
 		}
 
 		//Now we use the decrypted plain text secrets file as the .env file for the helm and docker deploy
-		c.AppEnvConfig = c.GCPKmsSecret.GCPPlainTextSecretsFile
+		c.AppEnvConfig = c.GCPKms.GCPPlainTextSecretsFile
 
 	case AzureCloud:
 		runCmd("az", "login", "--service-principal", "--tenant", os.Getenv("AZURE_SERVICE_PRINCIPAL_TENANT"), "--username", os.Getenv("AZURE_SERVICE_PRINCIPAL"), "--password", os.Getenv("AZURE_SERVICE_PRINCIPAL_PASSWORD"))

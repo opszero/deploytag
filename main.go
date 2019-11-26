@@ -36,11 +36,11 @@ to quickly create a Cobra application.`,
 	rootCmd.PersistentFlags().StringArrayVar(&config.AppAwsSecretIds, "app-aws-secret-ids", []string{}, "Ex. 1234.dkr.ecr.us-west-2.amazonaws.com")
 
 	//GCP KMS Variables Here
-	rootCmd.PersistentFlags().StringVar(&config.GCPKmsSecret.GCPEncryptedSecretsFile, "cloud-gcp-secret-file", "", "the path of the encrypted kms file")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKmsSecret.GCPPlainTextSecretsFile, "app-gcp-secret-file", "", "the path of the output plain text secrets file")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKmsSecret.GCPKeyRingLocation, "cloud-gcp-kms-location", "", "the location of the gcp keyring (must be provided with the keyring)")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKmsSecret.GCPKMSKey, "cloud-gcp-kms-key", os.Getenv(GCPDecryptionKeyVariable),"te key used to decrypt the secrets file")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKmsSecret.GCPKeyRingName, "cloud-gcp-kms-keyring", "","the keyring to use to decrypt the secrets")
+	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPEncryptedSecretsFile, "cloud-gcp-secret-file", "", "the path of the encrypted kms file")
+	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPPlainTextSecretsFile, "app-gcp-secret-file", "", "the path of the output plain text secrets file")
+	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPKeyRingLocation, "cloud-gcp-kms-location", "", "the location of the gcp keyring (must be provided with the keyring)")
+	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPKMSKey, "cloud-gcp-kms-key", os.Getenv(GCPDecryptionKeyVariable),"te key used to decrypt the secrets file")
+	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPKeyRingName, "cloud-gcp-kms-keyring", "","the keyring to use to decrypt the secrets")
 
 	rootCmd.PersistentFlags().StringVar(&config.Git.Branch, "branch", config.Git.GetDefaultBranch(), "The Git Branch to Tag the Docker Image")
 	rootCmd.PersistentFlags().StringVar(&config.Git.Sha, "sha", config.Git.GetDefaultSha1(), "The Git Sha to Tag the Docker Image")
