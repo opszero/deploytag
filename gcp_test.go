@@ -16,8 +16,7 @@ func TestLoadGCPSecrets(t *testing.T){
 		Cloud: GcpCloud,
 	}
 	c.Init()
-	err := c.loadGCPSecrets()
-	if err != nil {
+	if 	err := c.loadGCPSecrets(); err != nil {
 		t.Error(err.Error())
 	}
 }

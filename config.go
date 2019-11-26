@@ -49,16 +49,11 @@ type Config struct {
 	GCPServiceKeyFile   string
 	GCPServiceKeyBase64 string
 
-	GCPEncryptedSecretsFile string
-	GCPPlainTextSecretsFile string
-	GCPKMSKey               string
-	GCPKeyRingLocation      string
-	GCPKeyRingName			string
-
 	AppAwsSecretIds []string
 	AppEnvConfig    string
 
-	Git Git
+	Git          Git
+	GCPKmsSecret GCPKmsSecret
 
 	Docker struct {
 		Tag string
@@ -201,7 +196,7 @@ func (c *Config) Init() {
 		}
 
 		//Now we use the decrypted plain text secrets file as the .env file for the helm and docker deploy
-		c.AppEnvConfig = c.GCPPlainTextSecretsFile
+		c.AppEnvConfig = c.GCPKmsSecret.GCPPlainTextSecretsFile
 
 	case AzureCloud:
 		runCmd("az", "login", "--service-principal", "--tenant", os.Getenv("AZURE_SERVICE_PRINCIPAL_TENANT"), "--username", os.Getenv("AZURE_SERVICE_PRINCIPAL"), "--password", os.Getenv("AZURE_SERVICE_PRINCIPAL_PASSWORD"))
