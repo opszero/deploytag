@@ -46,6 +46,8 @@ type Config struct {
 	GCPServiceKeyFile   string
 	GCPServiceKeyBase64 string
 
+	GCP
+
 	AppAwsSecretIds []string
 	AppEnvConfig    string
 
