@@ -3,6 +3,7 @@
 DeployTag uses AWS Secret Manager, Kubernetes and Helm to deploy complete
 isolated application with full environments.
 
+
 # Description
 
 -   Terminology
@@ -58,3 +59,7 @@ isolated application with full environments.
     3. Since they are just yaml templates we can add new things like
         cronjobs, additional containers and dependencies from helm
         charts.
+        
+# Prerequisites
+#### GCP
+* the deploytag user or service account must have Decrypt Access to KMS. 

@@ -33,6 +33,10 @@ const (
 	AzureCloud = "azure"
 )
 
+const (
+	GCPDecryptionKeyVariable = "GCP_KMS_KEY"
+)
+
 type Config struct {
 	Cloud            string
 	CloudAwsSecretId string
@@ -45,7 +49,10 @@ type Config struct {
 	GCPServiceKeyFile   string
 	GCPServiceKeyBase64 string
 
-	GCP
+	GCPEncryptedSecretsFile string
+	GCPPlainTextSecretsFile string
+	GCPKMSKey               string
+	GCPKeyRingLocation      string
 
 	AppAwsSecretIds []string
 	AppEnvConfig    string
@@ -152,7 +159,7 @@ func (c *Config) loadAppAwsSecrets() {
 	return
 }
 
-func (c *Config) writeAppAwsSecrets(fileName string) {
+func (c *Config) writeAppSecrets(fileName string) {
 	log.Println("Writing .env", c.AppEnvConfig)
 
 	err := ioutil.WriteFile(fileName, []byte(c.AppEnvConfig), 0644)
@@ -171,13 +178,30 @@ func (c *Config) Init() {
 			log.Println("Ensure that AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION are set")
 		}
 	case GcpCloud:
+
 		if os.Getenv("GCLOUD_SERVICE_KEY_BASE64") != "" {
-			runCmd("bash", "-c", "echo $GCLOUD_SERVICE_KEY_BASE64 | base64 -d > /tmp/gcloud-service-key.json")
+			err := runCmd("bash", "-c", "echo $GCLOUD_SERVICE_KEY_BASE64 | base64 -d > /tmp/gcloud-service-key.json")
+			if err != nil {
+				log.Fatalln("the service key given was not base64 encoded")
+				return
+			}
 		} else {
 			log.Println("No Google Service Account Key given")
 		}
+		err := runCmd("gcloud", "auth", "activate-service-account", "--key-file=/tmp/gcloud-service-key.json")
+		if err != nil {
+			log.Fatalln("failed to authenticate gcp from service account")
+			return
+		}
+		err = c.loadGCPSecrets()
+		if err != nil {
+			log.Fatalln("failed to load secrets for GCP deployment")
+			return
+		}
 
-		runCmd("gcloud", "auth", "activate-service-account", "--key-file=/tmp/gcloud-service-key.json")
+		//Now we use the decrypted plain text secrets file as the .env file for the helm and docker deploy
+		c.AppEnvConfig = c.GCPPlainTextSecretsFile
+
 	case AzureCloud:
 		runCmd("az", "login", "--service-principal", "--tenant", os.Getenv("AZURE_SERVICE_PRINCIPAL_TENANT"), "--username", os.Getenv("AZURE_SERVICE_PRINCIPAL"), "--password", os.Getenv("AZURE_SERVICE_PRINCIPAL_PASSWORD"))
 	default:
@@ -256,7 +280,7 @@ func (c *Config) DockerBuildImage(image, dockerfile string) {
 
 	if c.Build.DotEnvFile != "" {
 		log.Println("Writing .env file")
-		c.writeAppAwsSecrets(c.Build.DotEnvFile)
+		c.writeAppSecrets(c.Build.DotEnvFile)
 	}
 
 	buildCmd := []string{"docker", "build"}
