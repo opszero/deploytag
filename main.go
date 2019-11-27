@@ -28,19 +28,20 @@ to quickly create a Cobra application.`,
 	}
 
 	rootCmd.PersistentFlags().StringVar(&config.Cloud, "cloud", "", "aws, gcp, or azure")
-	rootCmd.PersistentFlags().StringVar(&config.AWSAccessKeyID, "aws-access-key-id", os.Getenv("AWS_ACCESS_KEY_ID"), "AWS Access Key")
-	rootCmd.PersistentFlags().StringVar(&config.AWSSecretAccessKey, "aws-secret-access-key", os.Getenv("AWS_SECRET_ACCESS_KEY"), "AWS Secret Access Key")
-	rootCmd.PersistentFlags().StringVar(&config.AWSRegion, "aws-region", os.Getenv("AWS_REGION"), "AWS Secret Access Key")
 
-	rootCmd.PersistentFlags().StringVar(&config.CloudAwsSecretId, "cloud-aws-secret-id", "", "Use AWS Secrets Manager for Config. If set it pull the environment variables from aws secrets manager.")
-	rootCmd.PersistentFlags().StringArrayVar(&config.AppAwsSecretIds, "app-aws-secret-ids", []string{}, "Ex. 1234.dkr.ecr.us-west-2.amazonaws.com")
+	rootCmd.PersistentFlags().StringVar(&config.AWS.AccessKeyID, "aws-access-key-id", os.Getenv("AWS_ACCESS_KEY_ID"), "AWS Access Key")
+	rootCmd.PersistentFlags().StringVar(&config.AWS.SecretAccessKey, "aws-secret-access-key", os.Getenv("AWS_SECRET_ACCESS_KEY"), "AWS Secret Access Key")
+	rootCmd.PersistentFlags().StringVar(&config.AWS.Region, "aws-region", os.Getenv("AWS_REGION"), "AWS Secret Access Key")
+	// AWS AWS Secret Manager
+	rootCmd.PersistentFlags().StringVar(&config.AWS.CloudAwsSecretId, "cloud-aws-secret-id", "", "Use AWS Secrets Manager for Config. If set it pull the environment variables from aws secrets manager.")
+	rootCmd.PersistentFlags().StringArrayVar(&config.AWS.AppAwsSecretIds, "app-aws-secret-ids", []string{}, "Ex. 1234.dkr.ecr.us-west-2.amazonaws.com")
 
-	//GCP KMS Variables Here
-	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPEncryptedSecretsFile, "cloud-gcp-secret-file", "", "the path of the encrypted kms file")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPPlainTextSecretsFile, "app-gcp-secret-file", "", "the path of the output plain text secrets file")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPKeyRingLocation, "cloud-gcp-kms-location", "", "the location of the gcp keyring (must be provided with the keyring)")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPKMSKey, "cloud-gcp-kms-key", os.Getenv(GCPDecryptionKeyVariable),"te key used to decrypt the secrets file")
-	rootCmd.PersistentFlags().StringVar(&config.GCPKms.GCPKeyRingName, "cloud-gcp-kms-keyring", "","the keyring to use to decrypt the secrets")
+	// GCP KMS
+	rootCmd.PersistentFlags().StringVar(&config.GCP.CloudKmsSecretFile, "cloud-gcp-secret-file", "", "the path of the encrypted kms file for configuring the cluster")
+	rootCmd.PersistentFlags().StringArrayVar(&config.GCP.AppKmsSecretFiles, "app-gcp-secret-file", []string{}, "the paths of the output plain text secrets file for application level secrets")
+	rootCmd.PersistentFlags().StringVar(&config.GCP.KeyRingLocation, "cloud-gcp-kms-location", "", "the location of the gcp keyring (must be provided with the keyring)")
+	rootCmd.PersistentFlags().StringVar(&config.GCP.KMSKey, "cloud-gcp-kms-key", os.Getenv(GCPDecryptionKeyVariable), "te key used to decrypt the secrets file")
+	rootCmd.PersistentFlags().StringVar(&config.GCP.KeyRingName, "cloud-gcp-kms-keyring", "", "the keyring to use to decrypt the secrets")
 
 	rootCmd.PersistentFlags().StringVar(&config.Git.Branch, "branch", config.Git.GetDefaultBranch(), "The Git Branch to Tag the Docker Image")
 	rootCmd.PersistentFlags().StringVar(&config.Git.Sha, "sha", config.Git.GetDefaultSha1(), "The Git Sha to Tag the Docker Image")

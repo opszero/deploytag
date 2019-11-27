@@ -1,50 +1,39 @@
 package main
 
-import "errors"
+import "fmt"
 
-type GCPKmsSecret struct {
-	GCPEncryptedSecretsFile string
-	GCPPlainTextSecretsFile string
-	GCPKMSKey               string
-	GCPKeyRingLocation      string
-	GCPKeyRingName			string
+const (
+	GCPDecryptionKeyVariable = "GCP_KMS_KEY"
+)
 
+type GCP struct {
+	ServiceKeyFile   string
+	ServiceKeyBase64 string
+
+	CloudKmsSecretFile string
+	AppKmsSecretFiles  []string
+
+	// KMS Secrets
+	KMSKey          string
+	KeyRingLocation string
+	KeyRingName     string
 }
 
-func (c *Config) GCPKmsSecret() error {
-	args := []string{
-		"gcloud",
-		"kms",
-		"decrypt",
-		"--ciphertext-file",
-		c.GCPKms.GCPEncryptedSecretsFile,
-		"--plaintext-file",
-		c.GCPKms.GCPPlainTextSecretsFile,
-	}
-	if c.GCPKms.GCPEncryptedSecretsFile == "" || c.GCPKms.GCPPlainTextSecretsFile == "" {
-		return errors.New("the encrypted secrets file and the plain text file to write out with are required")
+func (c *GCP) SetCloudKmsSecrets() {
+	c.runKmsDecryptCmd(c.CloudKmsSecretFile)
+}
+
+func (c *GCP) AppKmsSecrets() (fileContent string) {
+	for _, secretFile := range c.AppKmsSecretFiles {
+		fileContent += fmt.Sprintf("# %s", secretFile)
+		fileContent += "\n"
+		fileContent += c.runKmsDecryptCmd(secretFile)
+		fileContent += "\n\n"
 	}
 
-	if c.GCPKms.GCPKMSKey != "" {
-		args = append(args, []string{
-			"--key",
-			c.GCPKms.GCPKMSKey}...
-		)
-	}
+	return
+}
 
-	if c.GCPKms.GCPKeyRingName != "" {
-		args = append(args, []string{
-			"--keyring",
-			c.GCPKms.GCPKeyRingName}...
-		)
-	}
-
-	if c.GCPKms.GCPKeyRingLocation != "" {
-		args = append(args, []string{
-			"--location",
-			c.GCPKms.GCPKeyRingLocation}...
-		)
-	}
-
-	return runCmd(args...)
+func (c *GCP) runKmsDecryptCmd(fileName string) (output string) {
+	return runCmdOutput("gcloud", "kms", "decrypt", "--ciphertext-file", fileName, "--plaintext-file", "-", "--key", c.KMSKey, "--keyring", c.KeyRingName, "--location", c.KeyRingLocation)
 }

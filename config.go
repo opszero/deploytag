@@ -11,13 +11,9 @@ import (
 	"text/template"
 
 	"github.com/cloudflare/cloudflare-go"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/joho/godotenv"
 
 	"github.com/a8m/envsubst"
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -33,27 +29,15 @@ const (
 	AzureCloud = "azure"
 )
 
-const (
-	GCPDecryptionKeyVariable = "GCP_KMS_KEY"
-)
-
 type Config struct {
-	Cloud            string
-	CloudAwsSecretId string
-	CloudEnvConfig   map[string]string
+	Cloud string
 
-	AWSAccessKeyID     string
-	AWSSecretAccessKey string
-	AWSRegion          string
+	AppDotEnv string
 
-	GCPServiceKeyFile   string
-	GCPServiceKeyBase64 string
+	AWS AWS
+	GCP GCP
 
-	AppAwsSecretIds []string
-	AppEnvConfig    string
-
-	Git    Git
-	GCPKms GCPKmsSecret
+	Git Git
 
 	Docker struct {
 		Tag string
@@ -86,95 +70,56 @@ type Config struct {
 	}
 }
 
-func (c *Config) loadCloudAwsSecrets() {
-	if c.CloudAwsSecretId == "" {
-		return
-	}
-
-	log.Println("Loading Cloud Secrets")
-
-	svc := secretsmanager.New(session.New())
-	input := &secretsmanager.GetSecretValueInput{
-		SecretId: aws.String(c.CloudAwsSecretId),
-	}
-
-	result, err := svc.GetSecretValue(input)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
-	if result.SecretString == nil {
-		return
-	}
-
-	c.CloudEnvConfig, err = godotenv.Parse(strings.NewReader(*result.SecretString))
+func SetEnvCloudSecrets(secretsStr string) {
+	secrets, err := godotenv.Parse(strings.NewReader(secretsStr))
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
-	log.Println("Cloud Config", c.CloudEnvConfig)
-
-	for k := range c.CloudEnvConfig {
-		log.Println("Setting up var", k)
-		os.Setenv(k, c.CloudEnvConfig[k])
+	if secrets == nil {
+		for k := range secrets {
+			log.Println("Setting up var", k)
+			os.Setenv(k, secrets[k])
+		}
 	}
-}
-
-func (c *Config) loadAppAwsSecrets() {
-	fileContent := fmt.Sprintf("DEPLOYTAG_BRANCH=%s\n\n", c.Git.DockerBranch())
-
-	for _, secretId := range c.AppAwsSecretIds {
-		svc := secretsmanager.New(session.New())
-		input := &secretsmanager.GetSecretValueInput{
-			SecretId: aws.String(secretId),
-		}
-
-		result, err := svc.GetSecretValue(input)
-		if err != nil {
-			log.Println(err.Error())
-			continue
-		}
-
-		// Decrypts secret using the associated KMS CMK.
-		// Depending on whether the secret is a string or binary, one of these fields will be populated.
-		if result.SecretString == nil {
-			continue
-		}
-
-		fileContent += fmt.Sprintf("# %s", secretId)
-		fileContent += "\n"
-		fileContent += *result.SecretString
-		fileContent += "\n\n"
-	}
-
-	c.AppEnvConfig = fileContent
-
-	log.Println(c.AppEnvConfig)
-
-	return
 }
 
 func (c *Config) writeAppSecrets(fileName string) {
-	log.Println("Writing .env", c.AppEnvConfig)
+	content := fmt.Sprintf("DEPLOYTAG_BRANCH=%s\n\n", c.Git.DockerBranch())
 
-	err := ioutil.WriteFile(fileName, []byte(c.AppEnvConfig), 0644)
+	content += c.AppDotEnv
+	log.Println("Writing .env", content)
+
+	err := ioutil.WriteFile(fileName, []byte(content), 0644)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
+func (c *Config) AppendAppSecrets(content string) {
+	c.AppDotEnv += "\n\n"
+	c.AppDotEnv += content
+	c.AppDotEnv += "\n\n"
+}
+
+func (c *Config) LoadSecrets() {
+	c.AWS.SetCloudAwsSecrets()
+	c.GCP.SetCloudKmsSecrets()
+
+	c.AppendAppSecrets(c.AWS.AppAwsSecrets())
+	c.AppendAppSecrets(c.GCP.AppKmsSecrets())
+}
+
 func (c *Config) Init() {
-	c.loadAppAwsSecrets()
-	c.loadCloudAwsSecrets()
+	c.LoadSecrets()
 
 	switch strings.ToLower(c.Cloud) {
 	case AwsCloud:
-		if c.AWSAccessKeyID == "" || c.AWSSecretAccessKey == "" || c.AWSRegion == "" {
+		if c.AWS.AccessKeyID == "" || c.AWS.SecretAccessKey == "" || c.AWS.Region == "" {
 			log.Println("Ensure that AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION are set")
 		}
 	case GcpCloud:
-
 		if os.Getenv("GCLOUD_SERVICE_KEY_BASE64") != "" {
 			if err := runCmd("bash", "-c", "echo $GCLOUD_SERVICE_KEY_BASE64 | base64 -d > /tmp/gcloud-service-key.json"); err != nil {
 				log.Fatalln("the service key given was not base64 encoded")
@@ -187,14 +132,6 @@ func (c *Config) Init() {
 			log.Fatalln("failed to authenticate gcp from service account")
 			return
 		}
-		if err := c.GCPKmsSecret(); err != nil {
-			log.Fatalln("failed to load secrets for GCP deployment")
-			return
-		}
-
-		//Now we use the decrypted plain text secrets file as the .env file for the helm and docker deploy
-		c.AppEnvConfig = c.GCPKms.GCPPlainTextSecretsFile
-
 	case AzureCloud:
 		runCmd("az", "login", "--service-principal", "--tenant", os.Getenv("AZURE_SERVICE_PRINCIPAL_TENANT"), "--username", os.Getenv("AZURE_SERVICE_PRINCIPAL"), "--password", os.Getenv("AZURE_SERVICE_PRINCIPAL_PASSWORD"))
 	default:
@@ -332,7 +269,7 @@ func (c *Config) HelmDeploy() {
 		"--set", fmt.Sprintf("image.tag=%s", c.Git.DockerSha1()),
 		"--set", fmt.Sprintf("deploytag.tag=%s", c.Docker.Tag),
 		"--set", fmt.Sprintf("deploytag.cloud=%s", c.Cloud),
-		"--set", fmt.Sprintf("secrets.files.dotenv.dotenv=%s", base64.StdEncoding.EncodeToString([]byte(c.AppEnvConfig))),
+		"--set", fmt.Sprintf("secrets.files.dotenv.dotenv=%s", base64.StdEncoding.EncodeToString([]byte(c.AppDotEnv))),
 	)
 
 	for _, i := range c.Deploy.HelmSet {
