@@ -20,7 +20,7 @@ type GCP struct {
 }
 
 func (c *GCP) SetCloudKmsSecrets() {
-	c.runKmsDecryptCmd(c.CloudKmsSecretFile)
+	SetEnvCloudSecrets(c.runKmsDecryptCmd(c.CloudKmsSecretFile))
 }
 
 func (c *GCP) AppKmsSecrets() (fileContent string) {
