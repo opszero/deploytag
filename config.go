@@ -11,7 +11,6 @@ import (
 	"text/template"
 
 	"github.com/cloudflare/cloudflare-go"
-	"github.com/joho/godotenv"
 
 	"github.com/a8m/envsubst"
 )
@@ -30,12 +29,12 @@ const (
 )
 
 type Config struct {
-	Cloud string
-
+	Cloud     string
 	AppDotEnv string
 
-	AWS AWS
-	GCP GCP
+	AWS   AWS
+	GCP   GCP
+	Azure Azure
 
 	Git Git
 
@@ -70,73 +69,22 @@ type Config struct {
 	}
 }
 
-func SetEnvCloudSecrets(secretsStr string) {
-	secrets, err := godotenv.Parse(strings.NewReader(secretsStr))
-	if err != nil {
-		log.Println(err)
-		return
+func (c *Config) CloudInit() {
+	switch strings.ToLower(c.Cloud) {
+	case AwsCloud:
+		c.AWS.Init()
+	case GcpCloud:
+		c.GCP.Init()
+	case AzureCloud:
+		c.Azure.Init()
+	default:
+		log.Fatal("Invalid Cloud")
 	}
-
-	if secrets == nil {
-		for k := range secrets {
-			log.Println("Setting up var", k)
-			os.Setenv(k, secrets[k])
-		}
-	}
-}
-
-func (c *Config) writeAppSecrets(fileName string) {
-	content := fmt.Sprintf("DEPLOYTAG_BRANCH=%s\n\n", c.Git.DockerBranch())
-
-	content += c.AppDotEnv
-	log.Println("Writing .env", content)
-
-	err := ioutil.WriteFile(fileName, []byte(content), 0644)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func (c *Config) AppendAppSecrets(content string) {
-	c.AppDotEnv += "\n\n"
-	c.AppDotEnv += content
-	c.AppDotEnv += "\n\n"
-}
-
-func (c *Config) LoadSecrets() {
-	c.AWS.SetCloudAwsSecrets()
-	c.GCP.SetCloudKmsSecrets()
-
-	c.AppendAppSecrets(c.AWS.AppAwsSecrets())
-	c.AppendAppSecrets(c.GCP.AppKmsSecrets())
 }
 
 func (c *Config) Init() {
-	c.LoadSecrets()
-
-	switch strings.ToLower(c.Cloud) {
-	case AwsCloud:
-		if c.AWS.AccessKeyID == "" || c.AWS.SecretAccessKey == "" || c.AWS.Region == "" {
-			log.Println("Ensure that AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION are set")
-		}
-	case GcpCloud:
-		if os.Getenv("GCLOUD_SERVICE_KEY_BASE64") != "" {
-			if err := runCmd("bash", "-c", "echo $GCLOUD_SERVICE_KEY_BASE64 | base64 -d > /tmp/gcloud-service-key.json"); err != nil {
-				log.Fatalln("the service key given was not base64 encoded")
-				return
-			}
-		} else {
-			log.Println("No Google Service Account Key given")
-		}
-		if err := runCmd("gcloud", "auth", "activate-service-account", "--key-file=/tmp/gcloud-service-key.json"); err != nil {
-			log.Fatalln("failed to authenticate gcp from service account")
-			return
-		}
-	case AzureCloud:
-		runCmd("az", "login", "--service-principal", "--tenant", os.Getenv("AZURE_SERVICE_PRINCIPAL_TENANT"), "--username", os.Getenv("AZURE_SERVICE_PRINCIPAL"), "--password", os.Getenv("AZURE_SERVICE_PRINCIPAL_PASSWORD"))
-	default:
-		log.Println("Invalid Cloud")
-	}
+	c.SecretsInit()
+	c.CloudInit()
 
 	os.Setenv("CONTAINER_REGISTRY", c.Build.ContainerRegistry)
 	os.Setenv("PROJECT_ID", c.Build.ProjectId)

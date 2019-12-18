@@ -70,3 +70,9 @@ func (c *AWS) AppAwsSecrets() (fileContent string) {
 
 	return
 }
+
+func (c *AWS) Init() {
+	if c.AccessKeyID == "" || c.SecretAccessKey == "" || c.Region == "" {
+		log.Println("Ensure that AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION are set")
+	}
+}

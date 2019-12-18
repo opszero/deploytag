@@ -38,7 +38,7 @@ to quickly create a Cobra application.`,
 
 	// GCP KMS
 	rootCmd.PersistentFlags().StringVar(&config.GCP.CloudKmsSecretFile, "cloud-gcp-secret-file", "", "the path of the encrypted kms file for configuring the cluster")
-	rootCmd.PersistentFlags().StringArrayVar(&config.GCP.AppKmsSecretFiles, "app-gcp-secret-file", []string{}, "the paths of the output plain text secrets file for application level secrets")
+	rootCmd.PersistentFlags().StringArrayVar(&config.GCP.AppKmsSecretFiles, "app-gcp-kms-secret-file", []string{}, "the paths of the output plain text secrets file for application level secrets")
 	rootCmd.PersistentFlags().StringVar(&config.GCP.KeyRingLocation, "cloud-gcp-kms-location", "", "the location of the gcp keyring (must be provided with the keyring)")
 	rootCmd.PersistentFlags().StringVar(&config.GCP.KMSKey, "cloud-gcp-kms-key", os.Getenv(GCPDecryptionKeyVariable), "te key used to decrypt the secrets file")
 	rootCmd.PersistentFlags().StringVar(&config.GCP.KeyRingName, "cloud-gcp-kms-keyring", "", "the keyring to use to decrypt the secrets")
