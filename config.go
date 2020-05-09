@@ -207,9 +207,6 @@ func (c *Config) DockerBuild() {
 func (c *Config) HelmDeploy() {
 	c.KuberneteConfig()
 
-	os.Setenv("HELM_HOME", runCmdOutput("helm", "home"))
-	os.MkdirAll(os.Getenv("HELM_HOME"), os.ModePerm)
-
 	var helmArgs []string
 
 	if c.Git.DockerBranch() == "master" || c.Git.DockerBranch() == "" {
@@ -217,10 +214,6 @@ func (c *Config) HelmDeploy() {
 	} else {
 		helmArgs = append(helmArgs, "--namespace", c.Git.DockerBranch())
 		runCmd("kubectl", "create", "namespace", c.Git.DockerBranch())
-	}
-
-	if os.Getenv("TILLER_NAMESPACE") == "" {
-		os.Setenv("TILLER_NAMESPACE", "kube-system")
 	}
 
 	helmArgs = append(helmArgs,
@@ -234,12 +227,7 @@ func (c *Config) HelmDeploy() {
 		helmArgs = append(helmArgs, "--set", i)
 	}
 
-	helmArgs = append(helmArgs,
-		os.ExpandEnv("--tiller-namespace=$TILLER_NAMESPACE"),
-		"--force",
-		"--recreate-pods",
-		// "--wait", TODO: Undo.
-		"--install")
+	helmArgs = append(helmArgs, "--force", "--install")
 
 	runCmd(append([]string{"helm", "upgrade", c.Git.DockerBranch(), c.Deploy.ChartName}, helmArgs...)...)
 }
