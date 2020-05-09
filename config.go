@@ -212,8 +212,7 @@ func (c *Config) HelmDeploy() {
 	if c.Git.DockerBranch() == "master" || c.Git.DockerBranch() == "" {
 		log.Println("Deploying")
 	} else {
-		helmArgs = append(helmArgs, "--namespace", c.Git.DockerBranch())
-		runCmd("kubectl", "create", "namespace", c.Git.DockerBranch())
+		helmArgs = append(helmArgs, "--namespace", c.Git.DockerBranch(), "--create-namespace")
 	}
 
 	helmArgs = append(helmArgs,
